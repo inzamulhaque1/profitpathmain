@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+Disallow: /login
+Disallow: /register
+Disallow: /saved
+Disallow: /api/
+
+Sitemap: https://profitpath.online/sitemap.xml
