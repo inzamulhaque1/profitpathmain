@@ -35,12 +35,45 @@ export async function GET() {
       await user.save();
     }
 
+    // Find all users referred by this user
+    const referredUsers = await User.find({ referredBy: user.name })
+      .select("name email lastLoginIP createdAt")
+      .sort({ createdAt: -1 });
+
+    // Find users who used the referral link but were blocked (referredBy is empty but came from same IP)
+    // We track blocked referrals separately — they have no referredBy but share IP
+    const blockedUsers = await User.find({
+      referredBy: "",
+      lastLoginIP: user.lastLoginIP,
+      _id: { $ne: user._id },
+    })
+      .select("name email lastLoginIP createdAt")
+      .sort({ createdAt: -1 });
+
+    const referralList = [
+      ...referredUsers.map((r) => ({
+        name: r.name,
+        email: r.email,
+        ip: r.lastLoginIP,
+        date: r.createdAt,
+        status: "accepted" as const,
+      })),
+      ...blockedUsers.map((r) => ({
+        name: r.name,
+        email: r.email,
+        ip: r.lastLoginIP,
+        date: r.createdAt,
+        status: "blocked" as const,
+      })),
+    ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
     return NextResponse.json({
       referralCode: user.referralCode,
       referralCount: user.referralCount || 0,
       rejectedReferrals: user.rejectedReferrals || 0,
       unlimitedUntil: user.unlimitedUntil,
       hasUnlimited: user.unlimitedUntil && new Date(user.unlimitedUntil) > new Date(),
+      referralList,
     });
   } catch (error) {
     console.error("Referral GET error:", error);

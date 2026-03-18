@@ -4,6 +4,14 @@ import { useSession } from "next-auth/react";
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 
+interface ReferralItem {
+  name: string;
+  email: string;
+  ip: string;
+  date: string;
+  status: "accepted" | "blocked";
+}
+
 export default function ReferralPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -12,6 +20,7 @@ export default function ReferralPage() {
   const [rejectedReferrals, setRejectedReferrals] = useState(0);
   const [hasUnlimited, setHasUnlimited] = useState(false);
   const [unlimitedUntil, setUnlimitedUntil] = useState<string | null>(null);
+  const [referralList, setReferralList] = useState<ReferralItem[]>([]);
   const [copied, setCopied] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -25,6 +34,7 @@ export default function ReferralPage() {
         setRejectedReferrals(data.rejectedReferrals || 0);
         setHasUnlimited(data.hasUnlimited);
         setUnlimitedUntil(data.unlimitedUntil);
+        setReferralList(data.referralList || []);
       }
     } catch (err) {
       console.error("Failed to fetch referral:", err);
@@ -51,7 +61,6 @@ export default function ReferralPage() {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      // Fallback
       const input = document.createElement("input");
       input.value = referralLink;
       document.body.appendChild(input);
@@ -74,8 +83,8 @@ export default function ReferralPage() {
   if (!session) return null;
 
   return (
-    <div className="min-h-[80vh] flex items-center justify-center px-3 sm:px-4">
-      <div className="w-full max-w-lg">
+    <div className="min-h-[80vh] flex items-center justify-center px-3 sm:px-4 py-8">
+      <div className="w-full max-w-2xl">
         <div className="text-center mb-8">
           <div className="text-5xl mb-4">🎁</div>
           <h1 className="text-2xl font-bold text-gray-800">Refer a Friend</h1>
@@ -151,6 +160,51 @@ export default function ReferralPage() {
                   minute: "2-digit",
                 })}
               </p>
+            </div>
+          )}
+
+          {/* Referral List */}
+          {referralList.length > 0 && (
+            <div className="border-t border-gray-100 pt-4">
+              <h3 className="font-semibold text-gray-800 mb-3">Your Referrals</h3>
+              <div className="space-y-2">
+                {referralList.map((item, i) => (
+                  <div
+                    key={i}
+                    className={`flex items-center justify-between p-3 rounded-lg ${
+                      item.status === "accepted" ? "bg-green-50" : "bg-red-50"
+                    }`}
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${
+                        item.status === "accepted"
+                          ? "bg-green-200 text-green-700"
+                          : "bg-red-200 text-red-700"
+                      }`}>
+                        {item.name.charAt(0).toUpperCase()}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-gray-900 truncate">{item.name}</p>
+                        <p className="text-xs text-gray-400 truncate">{item.email}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 flex-shrink-0">
+                      <span className="text-[10px] text-gray-400 hidden sm:block">
+                        {new Date(item.date).toLocaleDateString()}
+                      </span>
+                      {item.status === "accepted" ? (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-green-200 text-green-700">
+                          +1 Day
+                        </span>
+                      ) : (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-red-200 text-red-700">
+                          Same IP
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 
