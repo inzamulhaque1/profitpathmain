@@ -14,6 +14,7 @@ export default function Header() {
   const [genUsed, setGenUsed] = useState(0);
   const [genLimit, setGenLimit] = useState(0);
   const [hasUnlimited, setHasUnlimited] = useState(false);
+  const [isPro, setIsPro] = useState(false);
 
   useEffect(() => {
     if (status === "authenticated") {
@@ -23,6 +24,7 @@ export default function Header() {
           setGenUsed(d.used || 0);
           setGenLimit(d.limit || 0);
           setHasUnlimited(d.hasUnlimited || false);
+          setIsPro(d.isPro || false);
         })
         .catch(() => {});
     }
@@ -75,14 +77,26 @@ export default function Header() {
           {status === "authenticated" && session?.user && (
             <div className="relative flex items-center gap-2">
               {/* Generation counter */}
-              <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-gray-100 text-xs">
-                <svg className="w-3.5 h-3.5 text-brand-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
-                {hasUnlimited ? (
-                  <span className="font-semibold text-green-600">Unlimited</span>
+              <div className={`hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs ${isPro ? "bg-yellow-100" : "bg-gray-100"}`}>
+                {isPro ? (
+                  <>
+                    <span className="text-sm">👑</span>
+                    <span className="font-semibold text-yellow-700">Pro</span>
+                  </>
+                ) : hasUnlimited ? (
+                  <>
+                    <svg className="w-3.5 h-3.5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                    <span className="font-semibold text-green-600">Unlimited</span>
+                  </>
                 ) : (
-                  <span className="font-semibold text-gray-700">{genUsed}<span className="text-gray-400">/{genLimit}</span></span>
+                  <>
+                    <svg className="w-3.5 h-3.5 text-brand-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                    <span className="font-semibold text-gray-700">{genUsed}<span className="text-gray-400">/{genLimit}</span></span>
+                  </>
                 )}
               </div>
               <button
@@ -192,13 +206,12 @@ export default function Header() {
                   <p className="text-sm font-medium text-gray-800">{session.user.name}</p>
                   <p className="text-xs text-gray-400">{session.user.email}</p>
                   <div className="flex items-center gap-1.5 mt-1.5">
-                    <svg className="w-3.5 h-3.5 text-brand-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                    </svg>
-                    {hasUnlimited ? (
-                      <span className="text-xs font-semibold text-green-600">Unlimited</span>
+                    {isPro ? (
+                      <span className="text-xs font-semibold text-yellow-700">👑 Pro Member</span>
+                    ) : hasUnlimited ? (
+                      <span className="text-xs font-semibold text-green-600">⚡ Unlimited</span>
                     ) : (
-                      <span className="text-xs font-semibold text-gray-600">{genUsed}/{genLimit} generations</span>
+                      <span className="text-xs font-semibold text-gray-600">⚡ {genUsed}/{genLimit} generations</span>
                     )}
                   </div>
                 </div>

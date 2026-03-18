@@ -420,8 +420,8 @@ export default function AdminPage() {
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-1.5">
                               {isProActive ? (
-                                <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold bg-yellow-100 text-yellow-700">
-                                  Pro
+                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-gradient-to-r from-yellow-400 to-orange-400 text-white shadow-sm">
+                                  👑 PRO
                                 </span>
                               ) : hasUnlimited ? (
                                 <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold bg-green-100 text-green-700">
@@ -434,13 +434,13 @@ export default function AdminPage() {
                               )}
                               <button
                                 onClick={() => togglePro(user._id, !!isProActive)}
-                                className={`text-[9px] px-1.5 py-0.5 rounded font-medium transition ${
+                                className={`text-[9px] px-2 py-1 rounded-full font-semibold transition border ${
                                   isProActive
-                                    ? "bg-red-50 text-red-500 hover:bg-red-100"
-                                    : "bg-yellow-50 text-yellow-600 hover:bg-yellow-100"
+                                    ? "border-red-200 bg-red-50 text-red-500 hover:bg-red-100"
+                                    : "border-yellow-200 bg-yellow-50 text-yellow-600 hover:bg-yellow-100"
                                 }`}
                               >
-                                {isProActive ? "Remove" : "+Pro"}
+                                {isProActive ? "Remove Pro" : "Grant Pro"}
                               </button>
                             </div>
                           </td>
