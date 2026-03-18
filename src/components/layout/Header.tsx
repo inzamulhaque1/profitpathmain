@@ -120,6 +120,14 @@ export default function Header() {
                       </svg>
                       Refer &amp; Earn
                     </Link>
+                    <Link
+                      href="/pro"
+                      onClick={() => setUserMenuOpen(false)}
+                      className="flex items-center gap-2 px-4 py-2.5 text-sm text-yellow-600 hover:bg-yellow-50 transition-colors"
+                    >
+                      <span className="text-sm">👑</span>
+                      Upgrade to Pro
+                    </Link>
                     <button
                       onClick={() => { setUserMenuOpen(false); signOut({ callbackUrl: "/" }); }}
                       className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
@@ -199,6 +207,9 @@ export default function Header() {
                 </Link>
                 <Link href="/referral" onClick={() => setMobileOpen(false)} className="block px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-lg">
                   Refer &amp; Earn
+                </Link>
+                <Link href="/pro" onClick={() => setMobileOpen(false)} className="block px-3 py-2 text-sm text-yellow-600 hover:bg-yellow-50 rounded-lg">
+                  👑 Upgrade to Pro
                 </Link>
                 <button onClick={() => { setMobileOpen(false); signOut({ callbackUrl: "/" }); }} className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg cursor-pointer">
                   Sign Out

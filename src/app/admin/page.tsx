@@ -34,8 +34,24 @@ interface UserItem {
   referralCode: string;
   referralCount: number;
   referredBy: string;
+  isPro: boolean;
+  proExpiry: string | null;
   unlimitedUntil: string | null;
   lastLoginIP: string;
+  createdAt: string;
+}
+
+interface PaymentReq {
+  _id: string;
+  userId: string;
+  userName: string;
+  userEmail: string;
+  bkashNumber: string;
+  transactionId: string;
+  amount: number;
+  couponCode: string;
+  status: "pending" | "approved" | "rejected";
+  adminNote: string;
   createdAt: string;
 }
 
@@ -56,11 +72,12 @@ const emptyPromoForm = {
   enabled: true,
 };
 
-type Tab = "stats" | "users" | "promos" | "settings";
+type Tab = "stats" | "users" | "promos" | "payments" | "settings";
 
 const SIDEBAR_ITEMS: { key: Tab; label: string; icon: string }[] = [
   { key: "stats", label: "Overview", icon: "M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z" },
   { key: "users", label: "Users", icon: "M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z" },
+  { key: "payments", label: "Payments", icon: "M20 4H4c-1.11 0-1.99.89-1.99 2L2 18c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z" },
   { key: "promos", label: "Promos", icon: "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" },
   { key: "settings", label: "Settings", icon: "M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.07.62-.07.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z" },
 ];
@@ -78,6 +95,7 @@ export default function AdminPage() {
   const [settings, setSettings] = useState<Settings>({ guestLimit: 2, userLimit: 4, taskBonus: 11 });
   const [settingsSaved, setSettingsSaved] = useState(false);
 
+  const [payments, setPayments] = useState<PaymentReq[]>([]);
   const [promos, setPromos] = useState<Promo[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showNew, setShowNew] = useState(false);
@@ -120,6 +138,11 @@ export default function AdminPage() {
     if (res.ok) { const data = await res.json(); setUsers(data.users); }
   }, []);
 
+  const fetchPayments = useCallback(async () => {
+    const res = await fetch("/api/admin/payments");
+    if (res.ok) { const data = await res.json(); setPayments(data.requests || []); }
+  }, []);
+
   const fetchStats = useCallback(async () => {
     const res = await fetch("/api/admin/stats");
     if (res.ok) { setStats(await res.json()); }
@@ -128,10 +151,11 @@ export default function AdminPage() {
   useEffect(() => {
     if (!authorized) return;
     if (activeTab === "promos") fetchPromos();
+    if (activeTab === "payments") fetchPayments();
     if (activeTab === "settings") fetchSettings();
     if (activeTab === "stats") fetchStats();
     if (activeTab === "users") fetchUsers();
-  }, [activeTab, authorized, fetchPromos, fetchSettings, fetchStats, fetchUsers]);
+  }, [activeTab, authorized, fetchPromos, fetchPayments, fetchSettings, fetchStats, fetchUsers]);
 
   async function saveSettings() {
     const res = await fetch("/api/admin/settings", {
@@ -177,6 +201,37 @@ export default function AdminPage() {
       body: JSON.stringify({ ids }),
     });
     await fetchPromos();
+  }
+
+  async function handlePayment(requestId: string, action: "approve" | "reject") {
+    const adminNote = action === "reject" ? prompt("Rejection reason (optional):") || "" : "";
+    await fetch("/api/admin/payments", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ requestId, action, adminNote }),
+    });
+    await fetchPayments();
+    if (activeTab === "users") await fetchUsers();
+  }
+
+  async function togglePro(userId: string, currentPro: boolean) {
+    if (currentPro) {
+      if (!confirm("Remove Pro status from this user?")) return;
+      await fetch("/api/admin/pro", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, isPro: false }),
+      });
+    } else {
+      const days = prompt("Grant Pro for how many days?", "30");
+      if (!days) return;
+      await fetch("/api/admin/pro", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, isPro: true, days: parseInt(days) || 30 }),
+      });
+    }
+    await fetchUsers();
   }
 
   function editPromo(promo: Promo) {
@@ -261,12 +316,14 @@ export default function AdminPage() {
             <h2 className="text-2xl font-bold text-gray-900">
               {activeTab === "stats" && "Overview"}
               {activeTab === "users" && "Users"}
+              {activeTab === "payments" && "Payments"}
               {activeTab === "promos" && "Promos"}
               {activeTab === "settings" && "Settings"}
             </h2>
             <p className="text-sm text-gray-500 mt-1">
               {activeTab === "stats" && "Monitor your site performance"}
               {activeTab === "users" && `${users.length} registered users`}
+              {activeTab === "payments" && "Manage payment requests"}
               {activeTab === "promos" && "Manage promotional tasks"}
               {activeTab === "settings" && "Configure generation limits"}
             </p>
@@ -304,6 +361,7 @@ export default function AdminPage() {
                   <tbody className="divide-y divide-gray-100">
                     {users.map((user) => {
                       const hasUnlimited = user.unlimitedUntil && new Date(user.unlimitedUntil) > new Date();
+                      const isProActive = user.isPro && user.proExpiry && new Date(user.proExpiry) > new Date();
                       const genToday = user.lastGenerationDate === today ? user.dailyGenerations : 0;
                       const promosToday = user.lastTaskDate === today ? user.tasksCompletedToday : 0;
                       return (
@@ -350,15 +408,31 @@ export default function AdminPage() {
                             )}
                           </td>
                           <td className="px-4 py-3">
-                            {hasUnlimited ? (
-                              <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold bg-green-100 text-green-700">
-                                Unlimited
-                              </span>
-                            ) : (
-                              <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold bg-gray-100 text-gray-400">
-                                Free
-                              </span>
-                            )}
+                            <div className="flex items-center gap-1.5">
+                              {isProActive ? (
+                                <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold bg-yellow-100 text-yellow-700">
+                                  Pro
+                                </span>
+                              ) : hasUnlimited ? (
+                                <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold bg-green-100 text-green-700">
+                                  Unlimited
+                                </span>
+                              ) : (
+                                <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold bg-gray-100 text-gray-400">
+                                  Free
+                                </span>
+                              )}
+                              <button
+                                onClick={() => togglePro(user._id, !!isProActive)}
+                                className={`text-[9px] px-1.5 py-0.5 rounded font-medium transition ${
+                                  isProActive
+                                    ? "bg-red-50 text-red-500 hover:bg-red-100"
+                                    : "bg-yellow-50 text-yellow-600 hover:bg-yellow-100"
+                                }`}
+                              >
+                                {isProActive ? "Remove" : "+Pro"}
+                              </button>
+                            </div>
                           </td>
                           <td className="px-4 py-3">
                             <span className="text-xs font-mono text-gray-500">{user.lastLoginIP || "—"}</span>
@@ -378,6 +452,85 @@ export default function AdminPage() {
               <div className="px-4 py-3 border-t border-gray-100 bg-gray-50 text-xs text-gray-500">
                 Showing {users.length} users
               </div>
+            </div>
+          )}
+
+          {/* PAYMENTS */}
+          {activeTab === "payments" && (
+            <div className="space-y-4">
+              {payments.filter((p) => p.status === "pending").length > 0 && (
+                <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 text-sm text-orange-700 font-medium">
+                  {payments.filter((p) => p.status === "pending").length} pending payment request(s) need your attention
+                </div>
+              )}
+
+              {payments.length === 0 && (
+                <div className="bg-white rounded-xl border p-12 text-center text-gray-400">No payment requests yet</div>
+              )}
+
+              {payments.map((p) => (
+                <div key={p._id} className={`bg-white rounded-xl border p-4 ${
+                  p.status === "pending" ? "border-orange-200 ring-1 ring-orange-100" : ""
+                }`}>
+                  <div className="flex flex-wrap items-start justify-between gap-3 mb-3">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-semibold text-gray-900">{p.userName}</h3>
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${
+                          p.status === "pending" ? "bg-orange-100 text-orange-700" :
+                          p.status === "approved" ? "bg-green-100 text-green-700" :
+                          "bg-red-100 text-red-700"
+                        }`}>{p.status}</span>
+                      </div>
+                      <p className="text-xs text-gray-400">{p.userEmail}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-lg font-bold text-gray-900">{p.amount} BDT</p>
+                      <p className="text-[10px] text-gray-400">{new Date(p.createdAt).toLocaleString()}</p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
+                    <div className="bg-gray-50 rounded-lg px-3 py-2">
+                      <p className="text-[10px] text-gray-400 uppercase">bKash Number</p>
+                      <p className="text-sm font-mono font-medium text-gray-800">{p.bkashNumber}</p>
+                    </div>
+                    <div className="bg-gray-50 rounded-lg px-3 py-2">
+                      <p className="text-[10px] text-gray-400 uppercase">Transaction ID</p>
+                      <p className="text-sm font-mono font-medium text-gray-800">{p.transactionId}</p>
+                    </div>
+                    <div className="bg-gray-50 rounded-lg px-3 py-2">
+                      <p className="text-[10px] text-gray-400 uppercase">Amount</p>
+                      <p className="text-sm font-medium text-gray-800">{p.amount} BDT</p>
+                    </div>
+                    <div className="bg-gray-50 rounded-lg px-3 py-2">
+                      <p className="text-[10px] text-gray-400 uppercase">Coupon</p>
+                      <p className="text-sm font-medium text-gray-800">{p.couponCode || "—"}</p>
+                    </div>
+                  </div>
+
+                  {p.adminNote && (
+                    <p className="text-xs text-gray-500 mb-3">Admin note: {p.adminNote}</p>
+                  )}
+
+                  {p.status === "pending" && (
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => handlePayment(p._id, "approve")}
+                        className="bg-green-500 hover:bg-green-600 text-white text-sm font-medium px-4 py-2 rounded-lg transition"
+                      >
+                        Approve (+30 days Pro)
+                      </button>
+                      <button
+                        onClick={() => handlePayment(p._id, "reject")}
+                        className="bg-red-500 hover:bg-red-600 text-white text-sm font-medium px-4 py-2 rounded-lg transition"
+                      >
+                        Reject
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ))}
             </div>
           )}
 

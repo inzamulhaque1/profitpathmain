@@ -14,6 +14,8 @@ export interface IUser extends Document {
   referralCount: number;
   rejectedReferrals: number;
   referredBy: string;
+  isPro: boolean;
+  proExpiry: Date | null;
   unlimitedUntil: Date | null;
   lastLoginIP: string;
   createdAt: Date;
@@ -33,6 +35,8 @@ const UserSchema = new Schema<IUser>({
   referralCount: { type: Number, default: 0 },
   rejectedReferrals: { type: Number, default: 0 },
   referredBy: { type: String, default: "" },
+  isPro: { type: Boolean, default: false },
+  proExpiry: { type: Date, default: null },
   unlimitedUntil: { type: Date, default: null },
   lastLoginIP: { type: String, default: "" },
   createdAt: { type: Date, default: Date.now },

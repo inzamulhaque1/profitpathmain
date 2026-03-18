@@ -45,8 +45,11 @@ export async function GET() {
     const isToday = user.lastGenerationDate === today;
     const used = isToday ? user.dailyGenerations : 0;
 
+    // Check if user is Pro
+    const isPro = user.isPro && user.proExpiry && new Date(user.proExpiry) > new Date();
+
     // Check if user has unlimited access from referrals
-    const hasUnlimited = user.unlimitedUntil && new Date(user.unlimitedUntil) > new Date();
+    const hasUnlimited = isPro || (user.unlimitedUntil && new Date(user.unlimitedUntil) > new Date());
 
     // Tasks completed today
     const isTaskToday = user.lastTaskDate === today;
@@ -64,6 +67,7 @@ export async function GET() {
       tasksCompletedToday: tasksToday,
       canGenerate: hasUnlimited || used < limit,
       hasUnlimited,
+      isPro,
       unlimitedUntil: user.unlimitedUntil,
     });
   } catch (error) {
@@ -95,7 +99,8 @@ export async function POST() {
     await user.save();
 
     const settings = await getSettings();
-    const hasUnlimited = user.unlimitedUntil && new Date(user.unlimitedUntil) > new Date();
+    const isPro = user.isPro && user.proExpiry && new Date(user.proExpiry) > new Date();
+    const hasUnlimited = isPro || (user.unlimitedUntil && new Date(user.unlimitedUntil) > new Date());
     const isTaskToday = user.lastTaskDate === today;
     const tasksToday = isTaskToday ? user.tasksCompletedToday : 0;
     const limit = hasUnlimited ? 999999 : settings.userLimit + (settings.taskBonus * tasksToday);
