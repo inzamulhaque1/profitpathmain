@@ -35,7 +35,7 @@ export default function Header() {
     <header className="sticky top-0 z-50 bg-white border-b border-gray-200">
       <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
         <Link href="/" className="flex items-center">
-          <Image src="/logo.png" alt="ProfitPath" width={150} height={38} priority className="h-8 w-auto" />
+          <Image src="/images/logo.png" alt="ProfitPath" width={150} height={38} priority className="h-8 w-auto" />
         </Link>
 
         {/* Desktop nav */}

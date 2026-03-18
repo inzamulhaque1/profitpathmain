@@ -5,7 +5,7 @@ export const SITE_CONFIG = {
   url: "https://profitpath.online",
   description:
     "Free online tools for side hustlers, freelancers, and content creators. Calculate profits, generate YouTube titles, AI prompts, and more.",
-  ogImage: "/og-image.png",
+  ogImage: "/images/og-image.png",
 };
 
 export const TOOLS: ToolDefinition[] = [
