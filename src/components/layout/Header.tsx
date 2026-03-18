@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useState, useEffect } from "react";
 import { useSession, signOut } from "next-auth/react";
 import { TOOLS } from "@/lib/constants";
@@ -33,10 +34,8 @@ export default function Header() {
   return (
     <header className="sticky top-0 z-50 bg-white border-b border-gray-200">
       <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-2">
-          <span className="text-2xl font-display font-bold text-brand-600">
-            Profit<span className="text-surface-900">Path</span>
-          </span>
+        <Link href="/" className="flex items-center">
+          <Image src="/logo.png" alt="ProfitPath" width={150} height={38} priority className="h-8 w-auto" />
         </Link>
 
         {/* Desktop nav */}
