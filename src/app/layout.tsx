@@ -23,6 +23,7 @@ export const metadata: Metadata = {
   description:
     "Free AI-powered tools for side hustlers, freelancers, and content creators. Generate viral videos, calculate profits, create YouTube titles, and more.",
   metadataBase: new URL("https://profitpath.online"),
+  manifest: "/manifest.json",
   openGraph: {
     siteName: "ProfitPath",
     type: "website",

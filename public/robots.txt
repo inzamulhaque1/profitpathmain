@@ -3,6 +3,7 @@ Allow: /
 Disallow: /login
 Disallow: /register
 Disallow: /saved
+Disallow: /admin
 Disallow: /api/
 
 Sitemap: https://profitpath.online/sitemap.xml

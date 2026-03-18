@@ -1,4 +1,5 @@
 import { MetadataRoute } from "next";
+import { TOOLS } from "@/lib/constants";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const base = "https://profitpath.online";
@@ -10,24 +11,27 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "daily",
       priority: 1.0,
     },
-    {
-      url: `${base}/viral-youtube-prompt-generator`,
-      lastModified: new Date(),
-      changeFrequency: "weekly",
-      priority: 0.9,
-    },
-    ...[
-      "youtube-title-generator",
-      "youtube-tag-generator",
-      "ai-prompt-generator",
-      "income-calculator",
-      "freelance-rate-calculator",
-    ].map((slug) => ({
-      url: `${base}/${slug}`,
+    // All tools dynamically
+    ...TOOLS.map((tool) => ({
+      url: `${base}/${tool.slug}`,
       lastModified: new Date(),
       changeFrequency: "weekly" as const,
-      priority: 0.8,
+      priority: tool.slug === "viral-youtube-prompt-generator" ? 0.9 : 0.8,
     })),
+    // Pro & Referral
+    {
+      url: `${base}/pro`,
+      lastModified: new Date(),
+      changeFrequency: "monthly",
+      priority: 0.7,
+    },
+    {
+      url: `${base}/referral`,
+      lastModified: new Date(),
+      changeFrequency: "monthly",
+      priority: 0.6,
+    },
+    // Legal
     ...["privacy", "terms"].map((slug) => ({
       url: `${base}/${slug}`,
       lastModified: new Date(),

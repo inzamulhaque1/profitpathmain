@@ -1,0 +1,16 @@
+{
+  "name": "ProfitPath — Free AI Tools for Creators",
+  "short_name": "ProfitPath",
+  "description": "Free AI-powered tools for side hustlers, freelancers, and content creators.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#ef4444",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "any",
+      "type": "image/x-icon"
+    }
+  ]
+}
