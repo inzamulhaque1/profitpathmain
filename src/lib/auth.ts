@@ -50,6 +50,7 @@ export const authOptions: NextAuthOptions = {
           user.id = existing._id.toString();
         }
       }
+      // Update last login IP (done via separate API call after sign-in)
       return true;
     },
     async jwt({ token, user }) {

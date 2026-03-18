@@ -45,12 +45,15 @@ export async function GET() {
     const isToday = user.lastGenerationDate === today;
     const used = isToday ? user.dailyGenerations : 0;
 
+    // Check if user has unlimited access from referrals
+    const hasUnlimited = user.unlimitedUntil && new Date(user.unlimitedUntil) > new Date();
+
     // Tasks completed today
     const isTaskToday = user.lastTaskDate === today;
     const tasksToday = isTaskToday ? user.tasksCompletedToday : 0;
 
     // Limit = base + (bonus * number of tasks completed today)
-    const limit = settings.userLimit + (settings.taskBonus * tasksToday);
+    const limit = hasUnlimited ? 999999 : settings.userLimit + (settings.taskBonus * tasksToday);
 
     return NextResponse.json({
       isGuest: false,
@@ -59,7 +62,9 @@ export async function GET() {
       baseLimit: settings.userLimit,
       taskBonus: settings.taskBonus,
       tasksCompletedToday: tasksToday,
-      canGenerate: used < limit,
+      canGenerate: hasUnlimited || used < limit,
+      hasUnlimited,
+      unlimitedUntil: user.unlimitedUntil,
     });
   } catch (error) {
     console.error("Generation status error:", error);
@@ -90,15 +95,17 @@ export async function POST() {
     await user.save();
 
     const settings = await getSettings();
+    const hasUnlimited = user.unlimitedUntil && new Date(user.unlimitedUntil) > new Date();
     const isTaskToday = user.lastTaskDate === today;
     const tasksToday = isTaskToday ? user.tasksCompletedToday : 0;
-    const limit = settings.userLimit + (settings.taskBonus * tasksToday);
+    const limit = hasUnlimited ? 999999 : settings.userLimit + (settings.taskBonus * tasksToday);
 
     return NextResponse.json({
       success: true,
       used: user.dailyGenerations,
       limit,
-      canGenerate: user.dailyGenerations < limit,
+      canGenerate: hasUnlimited || user.dailyGenerations < limit,
+      hasUnlimited,
     });
   } catch (error) {
     console.error("Generation increment error:", error);

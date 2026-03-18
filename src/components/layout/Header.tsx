@@ -83,6 +83,16 @@ export default function Header() {
                       </svg>
                       Saved Generations
                     </Link>
+                    <Link
+                      href="/referral"
+                      onClick={() => setUserMenuOpen(false)}
+                      className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50 transition-colors"
+                    >
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                      </svg>
+                      Refer &amp; Earn
+                    </Link>
                     <button
                       onClick={() => { setUserMenuOpen(false); signOut({ callbackUrl: "/" }); }}
                       className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
@@ -149,6 +159,9 @@ export default function Header() {
                 </div>
                 <Link href="/saved" onClick={() => setMobileOpen(false)} className="block px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-lg">
                   Saved Generations
+                </Link>
+                <Link href="/referral" onClick={() => setMobileOpen(false)} className="block px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-lg">
+                  Refer &amp; Earn
                 </Link>
                 <button onClick={() => { setMobileOpen(false); signOut({ callbackUrl: "/" }); }} className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg cursor-pointer">
                   Sign Out

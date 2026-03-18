@@ -10,6 +10,10 @@ export interface IUser extends Document {
   tasksCompletedToday: number;
   lastTaskDate: string;
   nextPromoIndex: number;
+  referralCode: string;
+  referralCount: number;
+  unlimitedUntil: Date | null;
+  lastLoginIP: string;
   createdAt: Date;
 }
 
@@ -23,6 +27,10 @@ const UserSchema = new Schema<IUser>({
   tasksCompletedToday: { type: Number, default: 0 },
   lastTaskDate: { type: String, default: "" },
   nextPromoIndex: { type: Number, default: 0 },
+  referralCode: { type: String, unique: true, sparse: true },
+  referralCount: { type: Number, default: 0 },
+  unlimitedUntil: { type: Date, default: null },
+  lastLoginIP: { type: String, default: "" },
   createdAt: { type: Date, default: Date.now },
 });
 

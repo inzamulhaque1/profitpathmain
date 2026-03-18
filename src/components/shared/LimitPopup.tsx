@@ -251,6 +251,19 @@ export default function LimitPopup({
           </div>
         )}
 
+        {/* Referral option for logged-in users */}
+        {!isGuest && (
+          <div className="mt-4 pt-4 border-t border-gray-100 text-center">
+            <p className="text-sm text-gray-500 mb-2">Or get unlimited for a day!</p>
+            <button
+              onClick={() => { onClose(); router.push("/referral"); }}
+              className="text-sm font-medium text-brand-600 hover:text-brand-700 transition"
+            >
+              🎁 Refer a Friend — Get 1 Day Unlimited
+            </button>
+          </div>
+        )}
+
         <p className="text-center text-xs text-gray-400 mt-4">
           Resets daily at midnight
         </p>

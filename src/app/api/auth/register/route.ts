@@ -5,7 +5,7 @@ import User from "@/models/User";
 
 export async function POST(request: Request) {
   try {
-    const { name, email, password } = await request.json();
+    const { name, email, password, referralCode } = await request.json();
 
     if (!name || typeof name !== "string" || name.trim().length < 2) {
       return NextResponse.json({ error: "Name must be at least 2 characters" }, { status: 400 });
@@ -31,6 +31,21 @@ export async function POST(request: Request) {
       email: email.toLowerCase().trim(),
       password: hashedPassword,
     });
+
+    // Process referral if code provided
+    if (referralCode && typeof referralCode === "string") {
+      const referrer = await User.findOne({ referralCode: referralCode.trim() });
+      if (referrer) {
+        const unlimitedUntil = new Date();
+        if (referrer.unlimitedUntil && new Date(referrer.unlimitedUntil) > new Date()) {
+          unlimitedUntil.setTime(new Date(referrer.unlimitedUntil).getTime());
+        }
+        unlimitedUntil.setDate(unlimitedUntil.getDate() + 1);
+        referrer.unlimitedUntil = unlimitedUntil;
+        referrer.referralCount = (referrer.referralCount || 0) + 1;
+        await referrer.save();
+      }
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {

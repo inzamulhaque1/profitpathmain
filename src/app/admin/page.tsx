@@ -31,6 +31,10 @@ interface UserItem {
   tasksCompletedToday: number;
   lastTaskDate: string;
   nextPromoIndex: number;
+  referralCode: string;
+  referralCount: number;
+  unlimitedUntil: string | null;
+  lastLoginIP: string;
   createdAt: string;
 }
 
@@ -51,12 +55,22 @@ const emptyPromoForm = {
   enabled: true,
 };
 
+type Tab = "stats" | "users" | "promos" | "settings";
+
+const SIDEBAR_ITEMS: { key: Tab; label: string; icon: string }[] = [
+  { key: "stats", label: "Overview", icon: "M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z" },
+  { key: "users", label: "Users", icon: "M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z" },
+  { key: "promos", label: "Promos", icon: "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" },
+  { key: "settings", label: "Settings", icon: "M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.07.62-.07.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z" },
+];
+
 export default function AdminPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [authorized, setAuthorized] = useState(false);
   const [checking, setChecking] = useState(true);
-  const [activeTab, setActiveTab] = useState<"stats" | "users" | "promos" | "settings">("stats");
+  const [activeTab, setActiveTab] = useState<Tab>("stats");
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const [stats, setStats] = useState<Stats | null>(null);
   const [users, setUsers] = useState<UserItem[]>([]);
@@ -185,198 +199,288 @@ export default function AdminPage() {
   const today = new Date().toISOString().split("T")[0];
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4">
-      <div className="max-w-4xl mx-auto">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Admin Dashboard</h1>
-        <p className="text-gray-500 mb-6">Manage promos, limits, and monitor usage</p>
+    <div className="min-h-screen bg-gray-100 flex">
+      {/* Mobile sidebar toggle */}
+      <button
+        onClick={() => setSidebarOpen(!sidebarOpen)}
+        className="lg:hidden fixed top-20 left-3 z-50 bg-white border shadow-md rounded-lg p-2"
+      >
+        <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+        </svg>
+      </button>
 
-        {/* Tabs */}
-        <div className="flex gap-1 mb-6 bg-gray-100 rounded-xl p-1 w-fit flex-wrap">
-          {(["stats", "users", "promos", "settings"] as const).map((tab) => (
+      {/* Sidebar overlay for mobile */}
+      {sidebarOpen && (
+        <div className="lg:hidden fixed inset-0 z-40 bg-black/30" onClick={() => setSidebarOpen(false)} />
+      )}
+
+      {/* Sidebar */}
+      <aside className={`fixed lg:sticky top-0 left-0 z-40 h-screen w-56 bg-white border-r border-gray-200 flex flex-col transition-transform lg:translate-x-0 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}>
+        <div className="p-5 border-b border-gray-200">
+          <h1 className="text-lg font-bold text-gray-900">Admin Panel</h1>
+          <p className="text-xs text-gray-400 mt-0.5">ProfitPath</p>
+        </div>
+        <nav className="flex-1 p-3 space-y-1">
+          {SIDEBAR_ITEMS.map((item) => (
             <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`px-4 py-2 rounded-lg font-medium text-sm transition ${
-                activeTab === tab ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"
+              key={item.key}
+              onClick={() => { setActiveTab(item.key); setSidebarOpen(false); }}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition ${
+                activeTab === item.key
+                  ? "bg-red-50 text-red-600"
+                  : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
               }`}
             >
-              {tab === "stats" && "📊 Stats"}
-              {tab === "users" && "👥 Users"}
-              {tab === "promos" && "🎯 Promos"}
-              {tab === "settings" && "⚙️ Settings"}
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                <path d={item.icon} />
+              </svg>
+              {item.label}
             </button>
           ))}
+        </nav>
+        <div className="p-4 border-t border-gray-200">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-full bg-red-500 text-white flex items-center justify-center text-xs font-bold">
+              {session?.user?.name?.charAt(0).toUpperCase() || "A"}
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs font-medium text-gray-800 truncate">{session?.user?.name}</p>
+              <p className="text-[10px] text-gray-400 truncate">{session?.user?.email}</p>
+            </div>
+          </div>
         </div>
+      </aside>
 
-        {/* STATS */}
-        {activeTab === "stats" && stats && (
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            <StatCard label="Total Users" value={stats.totalUsers} icon="👥" />
-            <StatCard label="New Today" value={stats.newUsersToday} icon="🆕" />
-            <StatCard label="Generations Today" value={stats.generationsToday} icon="⚡" />
-            <StatCard label="Promos Watched Today" value={stats.tasksCompletedToday} icon="🎯" />
-            <StatCard label="Total Saved" value={stats.totalSaved} icon="💾" />
+      {/* Main content */}
+      <main className="flex-1 min-w-0">
+        <div className="p-4 lg:p-8">
+          {/* Page header */}
+          <div className="mb-6">
+            <h2 className="text-2xl font-bold text-gray-900">
+              {activeTab === "stats" && "Overview"}
+              {activeTab === "users" && "Users"}
+              {activeTab === "promos" && "Promos"}
+              {activeTab === "settings" && "Settings"}
+            </h2>
+            <p className="text-sm text-gray-500 mt-1">
+              {activeTab === "stats" && "Monitor your site performance"}
+              {activeTab === "users" && `${users.length} registered users`}
+              {activeTab === "promos" && "Manage promotional tasks"}
+              {activeTab === "settings" && "Configure generation limits"}
+            </p>
           </div>
-        )}
 
-        {/* USERS */}
-        {activeTab === "users" && (
-          <div className="bg-white rounded-xl border overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="bg-gray-50 border-b">
-                  <tr>
-                    <th className="text-left px-4 py-3 font-medium text-gray-500">Name</th>
-                    <th className="text-left px-4 py-3 font-medium text-gray-500">Email</th>
-                    <th className="text-left px-4 py-3 font-medium text-gray-500">Role</th>
-                    <th className="text-left px-4 py-3 font-medium text-gray-500">Gen Today</th>
-                    <th className="text-left px-4 py-3 font-medium text-gray-500">Promos</th>
-                    <th className="text-left px-4 py-3 font-medium text-gray-500">Next Promo</th>
-                    <th className="text-left px-4 py-3 font-medium text-gray-500">Joined</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y">
-                  {users.map((user) => (
-                    <tr key={user._id} className="hover:bg-gray-50">
-                      <td className="px-4 py-3 font-medium text-gray-900">{user.name}</td>
-                      <td className="px-4 py-3 text-gray-600 text-xs">{user.email}</td>
-                      <td className="px-4 py-3">
-                        <span className={`px-2 py-0.5 rounded text-xs font-medium ${
-                          user.role === "admin" ? "bg-red-100 text-red-700" : "bg-gray-100 text-gray-600"
-                        }`}>{user.role}</span>
-                      </td>
-                      <td className="px-4 py-3 text-gray-600">
-                        {user.lastGenerationDate === today ? user.dailyGenerations : "—"}
-                      </td>
-                      <td className="px-4 py-3 text-gray-600">
-                        {user.lastTaskDate === today ? `${user.tasksCompletedToday} watched` : "—"}
-                      </td>
-                      <td className="px-4 py-3 text-gray-600">#{user.nextPromoIndex + 1}</td>
-                      <td className="px-4 py-3 text-gray-500 text-xs">
-                        {new Date(user.createdAt).toLocaleDateString()}
-                      </td>
+          {/* STATS */}
+          {activeTab === "stats" && stats && (
+            <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+              <StatCard label="Total Users" value={stats.totalUsers} color="blue" />
+              <StatCard label="New Today" value={stats.newUsersToday} color="green" />
+              <StatCard label="Generations Today" value={stats.generationsToday} color="purple" />
+              <StatCard label="Promos Watched" value={stats.tasksCompletedToday} color="orange" />
+              <StatCard label="Total Saved" value={stats.totalSaved} color="pink" />
+            </div>
+          )}
+
+          {/* USERS */}
+          {activeTab === "users" && (
+            <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm whitespace-nowrap">
+                  <thead>
+                    <tr className="bg-gray-50 border-b border-gray-200">
+                      <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">User</th>
+                      <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Role</th>
+                      <th className="text-center px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Gen</th>
+                      <th className="text-center px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Promos</th>
+                      <th className="text-center px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Referrals</th>
+                      <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
+                      <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">IP</th>
+                      <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Joined</th>
                     </tr>
-                  ))}
-                  {users.length === 0 && (
-                    <tr><td colSpan={7} className="px-4 py-8 text-center text-gray-400">No users yet</td></tr>
-                  )}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {users.map((user) => {
+                      const hasUnlimited = user.unlimitedUntil && new Date(user.unlimitedUntil) > new Date();
+                      const genToday = user.lastGenerationDate === today ? user.dailyGenerations : 0;
+                      const promosToday = user.lastTaskDate === today ? user.tasksCompletedToday : 0;
+                      return (
+                        <tr key={user._id} className="hover:bg-gray-50 transition">
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-xs font-bold text-gray-600 flex-shrink-0">
+                                {user.name.charAt(0).toUpperCase()}
+                              </div>
+                              <div className="min-w-0">
+                                <p className="font-medium text-gray-900 truncate">{user.name}</p>
+                                <p className="text-xs text-gray-400 truncate">{user.email}</p>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold ${
+                              user.role === "admin" ? "bg-red-100 text-red-700" : "bg-gray-100 text-gray-500"
+                            }`}>{user.role}</span>
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            <span className={`text-sm font-semibold ${genToday > 0 ? "text-gray-900" : "text-gray-300"}`}>
+                              {genToday}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            <span className={`text-sm font-semibold ${promosToday > 0 ? "text-orange-600" : "text-gray-300"}`}>
+                              {promosToday}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            <span className={`text-sm font-semibold ${(user.referralCount || 0) > 0 ? "text-blue-600" : "text-gray-300"}`}>
+                              {user.referralCount || 0}
+                            </span>
+                            {user.referralCode && (
+                              <p className="text-[9px] text-gray-400 font-mono">{user.referralCode}</p>
+                            )}
+                          </td>
+                          <td className="px-4 py-3">
+                            {hasUnlimited ? (
+                              <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold bg-green-100 text-green-700">
+                                Unlimited
+                              </span>
+                            ) : (
+                              <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold bg-gray-100 text-gray-400">
+                                Free
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className="text-xs font-mono text-gray-500">{user.lastLoginIP || "—"}</span>
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className="text-xs text-gray-500">{new Date(user.createdAt).toLocaleDateString()}</span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                    {users.length === 0 && (
+                      <tr><td colSpan={8} className="px-4 py-12 text-center text-gray-400">No users yet</td></tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+              <div className="px-4 py-3 border-t border-gray-100 bg-gray-50 text-xs text-gray-500">
+                Showing {users.length} users
+              </div>
             </div>
-            <div className="px-4 py-3 border-t bg-gray-50 text-xs text-gray-500">
-              Showing {users.length} users (max 200)
-            </div>
-          </div>
-        )}
+          )}
 
-        {/* PROMOS */}
-        {activeTab === "promos" && (
-          <div className="space-y-4">
-            <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-sm text-blue-700">
-              <strong>How it works:</strong> Promos show in order (#1, #2, #3...). Each user sees the next one in the list.
-              The <strong>last promo loops forever</strong> — put your best CPA offer last.
-              Users watch a {settings.taskBonus > 0 ? `${settings.taskBonus}` : "N"}-generation bonus promo each time they hit their limit.
-            </div>
+          {/* PROMOS */}
+          {activeTab === "promos" && (
+            <div className="space-y-4">
+              <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-sm text-blue-700">
+                <strong>How it works:</strong> Promos show in order (#1, #2, #3...). Each user sees the next one in the list.
+                The <strong>last promo loops forever</strong> — put your best CPA offer last.
+                Users watch a {settings.taskBonus > 0 ? `${settings.taskBonus}` : "N"}-generation bonus promo each time they hit their limit.
+              </div>
 
-            {promos.map((promo, index) => {
-              const isEditing = editingId === promo._id;
-              const isLast = index === promos.length - 1;
+              {promos.map((promo, index) => {
+                const isEditing = editingId === promo._id;
+                const isLast = index === promos.length - 1;
 
-              return (
-                <div key={promo._id} className={`bg-white rounded-xl border p-4 ${isLast ? "ring-2 ring-red-200" : ""}`}>
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <span className="bg-gray-900 text-white text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center">
-                        {index + 1}
-                      </span>
-                      <h3 className="font-semibold text-gray-900">{promo.title}</h3>
-                      {isLast && (
-                        <span className="text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded-full font-medium">
-                          LOOPS FOREVER
+                return (
+                  <div key={promo._id} className={`bg-white rounded-xl border p-4 ${isLast ? "ring-2 ring-red-200" : ""}`}>
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <span className="bg-gray-900 text-white text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center">
+                          {index + 1}
                         </span>
-                      )}
-                      {!promo.enabled && (
-                        <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">Disabled</span>
-                      )}
+                        <h3 className="font-semibold text-gray-900">{promo.title}</h3>
+                        {isLast && (
+                          <span className="text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded-full font-medium">
+                            LOOPS FOREVER
+                          </span>
+                        )}
+                        {!promo.enabled && (
+                          <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">Disabled</span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <button onClick={() => movePromo(index, "up")} disabled={index === 0}
+                          className="text-gray-400 hover:text-gray-600 disabled:opacity-30 px-1">↑</button>
+                        <button onClick={() => movePromo(index, "down")} disabled={index === promos.length - 1}
+                          className="text-gray-400 hover:text-gray-600 disabled:opacity-30 px-1">↓</button>
+                        <button onClick={() => editPromo(promo)} className="text-sm text-blue-500 hover:text-blue-700 px-2">Edit</button>
+                        <button onClick={() => deletePromo(promo._id)} className="text-sm text-red-500 hover:text-red-700 px-2">Delete</button>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-1">
-                      <button onClick={() => movePromo(index, "up")} disabled={index === 0}
-                        className="text-gray-400 hover:text-gray-600 disabled:opacity-30 px-1">↑</button>
-                      <button onClick={() => movePromo(index, "down")} disabled={index === promos.length - 1}
-                        className="text-gray-400 hover:text-gray-600 disabled:opacity-30 px-1">↓</button>
-                      <button onClick={() => editPromo(promo)} className="text-sm text-blue-500 hover:text-blue-700 px-2">Edit</button>
-                      <button onClick={() => deletePromo(promo._id)} className="text-sm text-red-500 hover:text-red-700 px-2">Delete</button>
-                    </div>
+
+                    {!isEditing && (
+                      <div className="text-sm text-gray-600 space-y-1 ml-8">
+                        <p>{promo.description}</p>
+                        <p className="text-xs text-gray-400">
+                          URL: {promo.promoUrl || "—"} | Button: {promo.promoLabel || "—"} | Timer: {promo.timerDuration}s
+                        </p>
+                      </div>
+                    )}
+
+                    {isEditing && <PromoForm form={promoForm} setForm={setPromoForm} saving={promoSaving} onSave={savePromo} onCancel={() => { setEditingId(null); setPromoForm(emptyPromoForm); }} />}
                   </div>
+                );
+              })}
 
-                  {!isEditing && (
-                    <div className="text-sm text-gray-600 space-y-1 ml-8">
-                      <p>{promo.description}</p>
-                      <p className="text-xs text-gray-400">
-                        URL: {promo.promoUrl || "—"} | Button: {promo.promoLabel || "—"} | Timer: {promo.timerDuration}s
-                      </p>
-                    </div>
-                  )}
-
-                  {isEditing && <PromoForm form={promoForm} setForm={setPromoForm} saving={promoSaving} onSave={savePromo} onCancel={() => { setEditingId(null); setPromoForm(emptyPromoForm); }} />}
+              {/* Add new promo */}
+              {!showNew ? (
+                <button
+                  onClick={() => { setShowNew(true); setEditingId(null); setPromoForm(emptyPromoForm); }}
+                  className="w-full bg-white border-2 border-dashed border-gray-300 rounded-xl p-4 text-red-500 hover:border-red-300 hover:bg-red-50 font-medium transition"
+                >
+                  + Add New Promo
+                </button>
+              ) : (
+                <div className="bg-white rounded-xl border p-4">
+                  <h3 className="font-semibold text-gray-900 mb-3">New Promo (will be #{promos.length + 1})</h3>
+                  <PromoForm form={promoForm} setForm={setPromoForm} saving={promoSaving} onSave={savePromo} onCancel={() => { setShowNew(false); setPromoForm(emptyPromoForm); }} />
                 </div>
-              );
-            })}
+              )}
+            </div>
+          )}
 
-            {/* Add new promo */}
-            {!showNew ? (
-              <button
-                onClick={() => { setShowNew(true); setEditingId(null); setPromoForm(emptyPromoForm); }}
-                className="w-full bg-white border-2 border-dashed border-gray-300 rounded-xl p-4 text-red-500 hover:border-red-300 hover:bg-red-50 font-medium transition"
-              >
-                + Add New Promo
-              </button>
-            ) : (
-              <div className="bg-white rounded-xl border p-4">
-                <h3 className="font-semibold text-gray-900 mb-3">New Promo (will be #{promos.length + 1})</h3>
-                <PromoForm form={promoForm} setForm={setPromoForm} saving={promoSaving} onSave={savePromo} onCancel={() => { setShowNew(false); setPromoForm(emptyPromoForm); }} />
+          {/* SETTINGS */}
+          {activeTab === "settings" && (
+            <div className="bg-white rounded-xl border p-6 space-y-6">
+              <h2 className="font-semibold text-lg text-gray-900">Generation Limits</h2>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="text-sm font-medium text-gray-600 block mb-1">Guest Limit (no account)</label>
+                  <input type="number" value={settings.guestLimit}
+                    onChange={(e) => setSettings({ ...settings, guestLimit: parseInt(e.target.value) || 2 })}
+                    className="w-full border rounded-lg px-3 py-2" min={0} max={100} />
+                  <p className="text-xs text-gray-400 mt-1">Default: 2</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-600 block mb-1">Free Account Limit</label>
+                  <input type="number" value={settings.userLimit}
+                    onChange={(e) => setSettings({ ...settings, userLimit: parseInt(e.target.value) || 4 })}
+                    className="w-full border rounded-lg px-3 py-2" min={0} max={100} />
+                  <p className="text-xs text-gray-400 mt-1">Default: 4</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-600 block mb-1">Bonus Per Promo Watch</label>
+                  <input type="number" value={settings.taskBonus}
+                    onChange={(e) => setSettings({ ...settings, taskBonus: parseInt(e.target.value) || 11 })}
+                    className="w-full border rounded-lg px-3 py-2" min={0} max={100} />
+                  <p className="text-xs text-gray-400 mt-1">Default: 11 (each promo watch gives +{settings.taskBonus})</p>
+                </div>
               </div>
-            )}
-          </div>
-        )}
-
-        {/* SETTINGS */}
-        {activeTab === "settings" && (
-          <div className="bg-white rounded-xl border p-6 space-y-6">
-            <h2 className="font-semibold text-lg text-gray-900">Generation Limits</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="text-sm font-medium text-gray-600 block mb-1">Guest Limit (no account)</label>
-                <input type="number" value={settings.guestLimit}
-                  onChange={(e) => setSettings({ ...settings, guestLimit: parseInt(e.target.value) || 2 })}
-                  className="w-full border rounded-lg px-3 py-2" min={0} max={100} />
-                <p className="text-xs text-gray-400 mt-1">Default: 2</p>
-              </div>
-              <div>
-                <label className="text-sm font-medium text-gray-600 block mb-1">Free Account Limit</label>
-                <input type="number" value={settings.userLimit}
-                  onChange={(e) => setSettings({ ...settings, userLimit: parseInt(e.target.value) || 4 })}
-                  className="w-full border rounded-lg px-3 py-2" min={0} max={100} />
-                <p className="text-xs text-gray-400 mt-1">Default: 4</p>
-              </div>
-              <div>
-                <label className="text-sm font-medium text-gray-600 block mb-1">Bonus Per Promo Watch</label>
-                <input type="number" value={settings.taskBonus}
-                  onChange={(e) => setSettings({ ...settings, taskBonus: parseInt(e.target.value) || 11 })}
-                  className="w-full border rounded-lg px-3 py-2" min={0} max={100} />
-                <p className="text-xs text-gray-400 mt-1">Default: 11 (each promo watch gives +{settings.taskBonus})</p>
+              <div className="flex items-center gap-3">
+                <button onClick={saveSettings}
+                  className="bg-red-500 hover:bg-red-600 text-white font-medium px-6 py-2 rounded-lg transition">
+                  Save Settings
+                </button>
+                {settingsSaved && <span className="text-green-600 text-sm font-medium">Saved!</span>}
               </div>
             </div>
-            <div className="flex items-center gap-3">
-              <button onClick={saveSettings}
-                className="bg-red-500 hover:bg-red-600 text-white font-medium px-6 py-2 rounded-lg transition">
-                Save Settings
-              </button>
-              {settingsSaved && <span className="text-green-600 text-sm font-medium">Saved!</span>}
-            </div>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      </main>
     </div>
   );
 }
@@ -390,7 +494,6 @@ function PromoForm({ form, setForm, saving, onSave, onCancel }: {
 }) {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-2">
-      {/* Form */}
       <div className="space-y-3">
         <div>
           <label className="text-xs font-medium text-gray-500">Title</label>
@@ -439,10 +542,10 @@ function PromoForm({ form, setForm, saving, onSave, onCancel }: {
         </div>
       </div>
 
-      {/* Live Preview — Compact phone mockup */}
+      {/* Live Preview */}
       <div className="flex flex-col items-center">
         <p className="text-[10px] font-medium text-gray-400 mb-1">LIVE PREVIEW</p>
-        <div className="w-[220px] bg-black rounded-[1.5rem] p-2 shadow-xl scale-100">
+        <div className="w-[220px] bg-black rounded-[1.5rem] p-2 shadow-xl">
           <div className="bg-white rounded-[1.2rem] overflow-hidden">
             <div className="bg-gray-100 h-4 flex items-center justify-center">
               <div className="w-10 h-2 bg-gray-300 rounded-full" />
@@ -467,19 +570,12 @@ function PromoForm({ form, setForm, saving, onSave, onCancel }: {
                   {form.promoLabel || "Check it out"} — {form.timerDuration}s
                 </div>
               </div>
-              <div className="bg-red-50 rounded-lg p-1.5 mb-2">
-                <div className="text-lg font-bold text-red-500">{form.timerDuration}s</div>
-                <div className="bg-red-200 rounded-full h-1 overflow-hidden">
-                  <div className="bg-red-500 h-full rounded-full w-1/3" />
-                </div>
-              </div>
               <div className="bg-green-50 rounded-lg p-1.5">
                 <p className="font-bold text-green-700 text-[8px]">🎉 Task Complete!</p>
                 <div className="w-full bg-green-500 text-white text-[8px] font-semibold py-1 rounded-lg text-center mt-1">
                   Claim Bonus
                 </div>
               </div>
-              <p className="text-[7px] text-gray-400 mt-1">Resets daily at midnight</p>
             </div>
             <div className="bg-gray-100 h-3 flex items-center justify-center">
               <div className="w-12 h-0.5 bg-gray-300 rounded-full" />
@@ -491,12 +587,20 @@ function PromoForm({ form, setForm, saving, onSave, onCancel }: {
   );
 }
 
-function StatCard({ label, value, icon }: { label: string; value: number; icon: string }) {
+const STAT_COLORS: Record<string, string> = {
+  blue: "bg-blue-50 border-blue-100 text-blue-600",
+  green: "bg-green-50 border-green-100 text-green-600",
+  purple: "bg-purple-50 border-purple-100 text-purple-600",
+  orange: "bg-orange-50 border-orange-100 text-orange-600",
+  pink: "bg-pink-50 border-pink-100 text-pink-600",
+};
+
+function StatCard({ label, value, color }: { label: string; value: number; color: string }) {
+  const colorClass = STAT_COLORS[color] || STAT_COLORS.blue;
   return (
-    <div className="bg-white rounded-xl border p-4">
-      <div className="text-2xl mb-1">{icon}</div>
-      <div className="text-2xl font-bold text-gray-900">{value}</div>
-      <div className="text-sm text-gray-500">{label}</div>
+    <div className={`rounded-xl border p-5 ${colorClass}`}>
+      <div className="text-3xl font-bold">{value}</div>
+      <div className="text-sm font-medium mt-1 opacity-80">{label}</div>
     </div>
   );
 }
