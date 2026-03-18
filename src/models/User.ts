@@ -12,6 +12,7 @@ export interface IUser extends Document {
   nextPromoIndex: number;
   referralCode: string;
   referralCount: number;
+  rejectedReferrals: number;
   referredBy: string;
   unlimitedUntil: Date | null;
   lastLoginIP: string;
@@ -30,6 +31,7 @@ const UserSchema = new Schema<IUser>({
   nextPromoIndex: { type: Number, default: 0 },
   referralCode: { type: String, unique: true, sparse: true },
   referralCount: { type: Number, default: 0 },
+  rejectedReferrals: { type: Number, default: 0 },
   referredBy: { type: String, default: "" },
   unlimitedUntil: { type: Date, default: null },
   lastLoginIP: { type: String, default: "" },

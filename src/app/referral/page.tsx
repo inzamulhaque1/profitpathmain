@@ -9,6 +9,7 @@ export default function ReferralPage() {
   const router = useRouter();
   const [referralCode, setReferralCode] = useState("");
   const [referralCount, setReferralCount] = useState(0);
+  const [rejectedReferrals, setRejectedReferrals] = useState(0);
   const [hasUnlimited, setHasUnlimited] = useState(false);
   const [unlimitedUntil, setUnlimitedUntil] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -21,6 +22,7 @@ export default function ReferralPage() {
         const data = await res.json();
         setReferralCode(data.referralCode);
         setReferralCount(data.referralCount || 0);
+        setRejectedReferrals(data.rejectedReferrals || 0);
         setHasUnlimited(data.hasUnlimited);
         setUnlimitedUntil(data.unlimitedUntil);
       }
@@ -107,18 +109,34 @@ export default function ReferralPage() {
           </div>
 
           {/* Stats */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="bg-gray-50 rounded-xl p-4 text-center">
-              <div className="text-2xl font-bold text-gray-800">{referralCount}</div>
-              <div className="text-xs text-gray-500 mt-1">Friends Referred</div>
+          <div className="grid grid-cols-3 gap-3">
+            <div className="bg-green-50 rounded-xl p-4 text-center">
+              <div className="text-2xl font-bold text-green-600">{referralCount}</div>
+              <div className="text-xs text-gray-500 mt-1">Successful</div>
+            </div>
+            <div className="bg-red-50 rounded-xl p-4 text-center">
+              <div className="text-2xl font-bold text-red-500">{rejectedReferrals}</div>
+              <div className="text-xs text-gray-500 mt-1">Rejected</div>
             </div>
             <div className="bg-gray-50 rounded-xl p-4 text-center">
               <div className="text-2xl font-bold text-green-600">
                 {hasUnlimited ? "Active" : "Inactive"}
               </div>
-              <div className="text-xs text-gray-500 mt-1">Unlimited Status</div>
+              <div className="text-xs text-gray-500 mt-1">Unlimited</div>
             </div>
           </div>
+
+          {/* Fraud warning */}
+          {rejectedReferrals > 0 && (
+            <div className="bg-red-50 border border-red-200 rounded-xl p-4">
+              <p className="text-red-700 text-sm font-medium">
+                {rejectedReferrals} referral{rejectedReferrals > 1 ? "s" : ""} rejected
+              </p>
+              <p className="text-red-500 text-xs mt-1">
+                Referrals from the same IP address or disposable emails are not counted. Please share your link with real friends on different networks.
+              </p>
+            </div>
+          )}
 
           {/* Unlimited badge */}
           {hasUnlimited && unlimitedUntil && (

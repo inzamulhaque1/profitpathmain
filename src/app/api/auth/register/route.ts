@@ -49,6 +49,10 @@ export async function POST(request: NextRequest) {
         if (!sameIP && !isDisposable) {
           referrerName = referrer.name;
           validReferral = true;
+        } else {
+          // Track rejected referral
+          referrer.rejectedReferrals = (referrer.rejectedReferrals || 0) + 1;
+          await referrer.save();
         }
       }
     }

@@ -38,6 +38,7 @@ export async function GET() {
     return NextResponse.json({
       referralCode: user.referralCode,
       referralCount: user.referralCount || 0,
+      rejectedReferrals: user.rejectedReferrals || 0,
       unlimitedUntil: user.unlimitedUntil,
       hasUnlimited: user.unlimitedUntil && new Date(user.unlimitedUntil) > new Date(),
     });
