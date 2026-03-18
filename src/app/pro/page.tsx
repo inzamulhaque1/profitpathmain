@@ -15,7 +15,11 @@ interface PaymentReq {
   createdAt: string;
 }
 
-const BASE_PRICE = 200;
+interface CouponInfo {
+  code: string;
+  discount: number;
+  firstMonthOnly: boolean;
+}
 
 export default function ProPage() {
   const { data: session, status } = useSession();
@@ -24,13 +28,16 @@ export default function ProPage() {
   const [proExpiry, setProExpiry] = useState<string | null>(null);
   const [requests, setRequests] = useState<PaymentReq[]>([]);
   const [loading, setLoading] = useState(true);
+  const [basePrice, setBasePrice] = useState(200);
+  const [payNumber, setPayNumber] = useState("{payNumber}");
+  const [availableCoupons, setAvailableCoupons] = useState<CouponInfo[]>([]);
 
   const [step, setStep] = useState<"plan" | "pay" | "done">("plan");
   const [bkashNumber, setBkashNumber] = useState("");
   const [transactionId, setTransactionId] = useState("");
   const [couponCode, setCouponCode] = useState("");
   const [couponApplied, setCouponApplied] = useState(false);
-  const [finalPrice, setFinalPrice] = useState(BASE_PRICE);
+  const [finalPrice, setFinalPrice] = useState(200);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
@@ -42,6 +49,9 @@ export default function ProPage() {
         setIsPro(data.isPro);
         setProExpiry(data.proExpiry);
         setRequests(data.requests || []);
+        if (data.proPrice) { setBasePrice(data.proPrice); setFinalPrice(data.proPrice); }
+        if (data.bkashNumber) setPayNumber(data.bkashNumber);
+        if (data.coupons) setAvailableCoupons(data.coupons);
       }
     } catch (err) {
       console.error("Failed to fetch:", err);
@@ -56,12 +66,13 @@ export default function ProPage() {
 
   function applyCoupon() {
     const code = couponCode.toLowerCase().trim();
-    if (code === "new50") {
+    const coupon = availableCoupons.find((c) => c.code.toLowerCase() === code);
+    if (coupon) {
       setCouponApplied(true);
-      setFinalPrice(Math.round(BASE_PRICE * 0.5));
+      setFinalPrice(Math.round(basePrice * (1 - coupon.discount / 100)));
     } else {
       setCouponApplied(false);
-      setFinalPrice(BASE_PRICE);
+      setFinalPrice(basePrice);
       setError("Invalid coupon code");
       setTimeout(() => setError(""), 2000);
     }
@@ -70,7 +81,7 @@ export default function ProPage() {
   function removeCoupon() {
     setCouponCode("");
     setCouponApplied(false);
-    setFinalPrice(BASE_PRICE);
+    setFinalPrice(basePrice);
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -138,6 +149,11 @@ export default function ProPage() {
             <div className="text-center mb-6">
               <h1 className="text-2xl font-bold text-gray-900">Upgrade to Pro</h1>
               <p className="text-gray-500 mt-1 text-sm">Unlimited AI generations. No limits. No ads.</p>
+            {availableCoupons.length > 0 && (
+              <div className="mt-3 inline-flex items-center gap-2 bg-yellow-50 border border-yellow-200 text-yellow-800 text-xs font-medium px-3 py-1.5 rounded-full">
+                Use code <span className="font-mono font-bold bg-yellow-200 px-1.5 py-0.5 rounded">{availableCoupons[0].code.toUpperCase()}</span> for {availableCoupons[0].discount}% off{availableCoupons[0].firstMonthOnly ? " first month" : ""}!
+              </div>
+            )}
             </div>
 
             {/* Pricing Card */}
@@ -149,7 +165,7 @@ export default function ProPage() {
                 <div className="text-center mb-6">
                   <div className="flex items-baseline justify-center gap-1">
                     {couponApplied && (
-                      <span className="text-xl text-gray-400 line-through mr-1">{BASE_PRICE}</span>
+                      <span className="text-xl text-gray-400 line-through mr-1">{basePrice}</span>
                     )}
                     <span className="text-5xl font-extrabold text-gray-900">{finalPrice}</span>
                     <span className="text-gray-500 text-lg">BDT</span>
@@ -158,7 +174,7 @@ export default function ProPage() {
                   {couponApplied && (
                     <div className="mt-2 inline-flex items-center gap-1.5 bg-green-100 text-green-700 text-xs font-semibold px-3 py-1 rounded-full">
                       <span>50% OFF applied!</span>
-                      <span className="text-green-500">You save {BASE_PRICE - finalPrice} BDT</span>
+                      <span className="text-green-500">You save {basePrice - finalPrice} BDT</span>
                     </div>
                   )}
                 </div>
@@ -240,7 +256,7 @@ export default function ProPage() {
 
               <div className="bg-white/15 backdrop-blur rounded-xl p-4 mb-4">
                 <p className="text-white/80 text-xs mb-1">Send to this number</p>
-                <p className="text-3xl font-bold tracking-wider">01728005274</p>
+                <p className="text-3xl font-bold tracking-wider">{payNumber}</p>
               </div>
 
               <div className="bg-white/15 backdrop-blur rounded-xl p-4">
@@ -262,7 +278,7 @@ export default function ProPage() {
                 </div>
                 <div className="flex items-start gap-2 text-xs text-white/80">
                   <span className="bg-white/20 w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 text-[10px] font-bold">2</span>
-                  Enter <strong className="text-white">01728005274</strong> &rarr; Amount: <strong className="text-white">{finalPrice} BDT</strong>
+                  Enter <strong className="text-white">{payNumber}</strong> &rarr; Amount: <strong className="text-white">{finalPrice} BDT</strong>
                 </div>
                 <div className="flex items-start gap-2 text-xs text-white/80">
                   <span className="bg-white/20 w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 text-[10px] font-bold">3</span>
@@ -317,12 +333,12 @@ export default function ProPage() {
                 <div className="bg-gray-50 rounded-xl p-4">
                   <div className="flex justify-between text-sm mb-2">
                     <span className="text-gray-500">Pro Plan (1 month)</span>
-                    <span className="text-gray-700">{BASE_PRICE} BDT</span>
+                    <span className="text-gray-700">{basePrice} BDT</span>
                   </div>
                   {couponApplied && (
                     <div className="flex justify-between text-sm mb-2">
                       <span className="text-green-600">Coupon ({couponCode.toUpperCase()})</span>
-                      <span className="text-green-600">-{BASE_PRICE - finalPrice} BDT</span>
+                      <span className="text-green-600">-{basePrice - finalPrice} BDT</span>
                     </div>
                   )}
                   <div className="border-t border-gray-200 pt-2 mt-2 flex justify-between">

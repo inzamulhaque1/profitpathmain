@@ -4,14 +4,16 @@ import { authOptions } from "@/lib/auth";
 import connectDB from "@/lib/mongodb";
 import User from "@/models/User";
 import PaymentRequest from "@/models/PaymentRequest";
+import SiteSettings from "@/models/SiteSettings";
 
-const VALID_COUPONS: Record<string, { discount: number; firstMonthOnly: boolean }> = {
-  new50: { discount: 0.5, firstMonthOnly: true },
-};
+async function getSettings() {
+  await connectDB();
+  let settings = await SiteSettings.findOne({ key: "main" });
+  if (!settings) settings = await SiteSettings.create({ key: "main" });
+  return settings;
+}
 
-const BASE_PRICE = 200; // BDT per month
-
-// GET: Get user's payment requests + pro status
+// GET: Get user's payment requests + pro status + settings
 export async function GET() {
   try {
     const session = await getServerSession(authOptions);
@@ -26,17 +28,21 @@ export async function GET() {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    const requests = await PaymentRequest.find({ userId })
-      .sort({ createdAt: -1 })
-      .limit(10);
-
+    const settings = await getSettings();
+    const requests = await PaymentRequest.find({ userId }).sort({ createdAt: -1 }).limit(10);
     const isPro = user.isPro && user.proExpiry && new Date(user.proExpiry) > new Date();
 
     return NextResponse.json({
       isPro,
       proExpiry: user.proExpiry,
       requests,
-      basePrice: BASE_PRICE,
+      proPrice: settings.proPrice || 200,
+      bkashNumber: settings.bkashNumber || "01728005274",
+      coupons: (settings.coupons || []).filter((c: { enabled: boolean }) => c.enabled).map((c: { code: string; discount: number; firstMonthOnly: boolean }) => ({
+        code: c.code,
+        discount: c.discount,
+        firstMonthOnly: c.firstMonthOnly,
+      })),
     });
   } catch (error) {
     console.error("Payment GET error:", error);
@@ -54,11 +60,9 @@ export async function POST(req: NextRequest) {
     }
 
     const { bkashNumber, transactionId, couponCode } = await req.json();
-
     if (!bkashNumber || !transactionId) {
       return NextResponse.json({ error: "bKash number and transaction ID required" }, { status: 400 });
     }
-
     if (transactionId.length < 5) {
       return NextResponse.json({ error: "Invalid transaction ID" }, { status: 400 });
     }
@@ -69,29 +73,30 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    // Check for pending requests
     const pendingExists = await PaymentRequest.findOne({ userId, status: "pending" });
     if (pendingExists) {
-      return NextResponse.json({ error: "You already have a pending payment request. Please wait for admin approval." }, { status: 400 });
+      return NextResponse.json({ error: "You already have a pending payment request." }, { status: 400 });
     }
 
-    // Calculate amount
-    let amount = BASE_PRICE;
+    const settings = await getSettings();
+    const basePrice = settings.proPrice || 200;
+    let amount = basePrice;
     let appliedCoupon = "";
 
     if (couponCode && typeof couponCode === "string") {
-      const coupon = VALID_COUPONS[couponCode.toLowerCase().trim()];
+      const coupon = (settings.coupons || []).find(
+        (c: { code: string; enabled: boolean }) => c.code.toLowerCase() === couponCode.toLowerCase().trim() && c.enabled
+      );
       if (coupon) {
-        // Check if first month only
         if (coupon.firstMonthOnly) {
           const previousApproved = await PaymentRequest.findOne({ userId, status: "approved" });
           if (!previousApproved) {
-            amount = Math.round(BASE_PRICE * (1 - coupon.discount));
-            appliedCoupon = couponCode.toLowerCase().trim();
+            amount = Math.round(basePrice * (1 - coupon.discount / 100));
+            appliedCoupon = coupon.code;
           }
         } else {
-          amount = Math.round(BASE_PRICE * (1 - coupon.discount));
-          appliedCoupon = couponCode.toLowerCase().trim();
+          amount = Math.round(basePrice * (1 - coupon.discount / 100));
+          appliedCoupon = coupon.code;
         }
       }
     }

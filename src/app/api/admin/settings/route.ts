@@ -29,17 +29,21 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { guestLimit, userLimit, taskBonus } = body;
+    const { guestLimit, userLimit, taskBonus, proPrice, bkashNumber, coupons } = body;
 
     await connectDB();
+
+    const update: Record<string, unknown> = { updatedAt: new Date() };
+    if (guestLimit !== undefined) update.guestLimit = guestLimit;
+    if (userLimit !== undefined) update.userLimit = userLimit;
+    if (taskBonus !== undefined) update.taskBonus = taskBonus;
+    if (proPrice !== undefined) update.proPrice = proPrice;
+    if (bkashNumber !== undefined) update.bkashNumber = bkashNumber;
+    if (coupons !== undefined) update.coupons = coupons;
+
     const settings = await SiteSettings.findOneAndUpdate(
       { key: "main" },
-      {
-        guestLimit: guestLimit ?? 2,
-        userLimit: userLimit ?? 4,
-        taskBonus: taskBonus ?? 11,
-        updatedAt: new Date(),
-      },
+      update,
       { upsert: true, new: true }
     );
 

@@ -15,10 +15,20 @@ interface Promo {
   enabled: boolean;
 }
 
+interface Coupon {
+  code: string;
+  discount: number;
+  firstMonthOnly: boolean;
+  enabled: boolean;
+}
+
 interface Settings {
   guestLimit: number;
   userLimit: number;
   taskBonus: number;
+  proPrice: number;
+  bkashNumber: string;
+  coupons: Coupon[];
 }
 
 interface UserItem {
@@ -92,7 +102,7 @@ export default function AdminPage() {
 
   const [stats, setStats] = useState<Stats | null>(null);
   const [users, setUsers] = useState<UserItem[]>([]);
-  const [settings, setSettings] = useState<Settings>({ guestLimit: 2, userLimit: 4, taskBonus: 11 });
+  const [settings, setSettings] = useState<Settings>({ guestLimit: 2, userLimit: 4, taskBonus: 11, proPrice: 200, bkashNumber: "01728005274", coupons: [] });
   const [settingsSaved, setSettingsSaved] = useState(false);
 
   const [payments, setPayments] = useState<PaymentReq[]>([]);
@@ -607,35 +617,124 @@ export default function AdminPage() {
 
           {/* SETTINGS */}
           {activeTab === "settings" && (
-            <div className="bg-white rounded-xl border p-6 space-y-6">
-              <h2 className="font-semibold text-lg text-gray-900">Generation Limits</h2>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label className="text-sm font-medium text-gray-600 block mb-1">Guest Limit (no account)</label>
-                  <input type="number" value={settings.guestLimit}
-                    onChange={(e) => setSettings({ ...settings, guestLimit: parseInt(e.target.value) || 2 })}
-                    className="w-full border rounded-lg px-3 py-2" min={0} max={100} />
-                  <p className="text-xs text-gray-400 mt-1">Default: 2</p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-600 block mb-1">Free Account Limit</label>
-                  <input type="number" value={settings.userLimit}
-                    onChange={(e) => setSettings({ ...settings, userLimit: parseInt(e.target.value) || 4 })}
-                    className="w-full border rounded-lg px-3 py-2" min={0} max={100} />
-                  <p className="text-xs text-gray-400 mt-1">Default: 4</p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-600 block mb-1">Bonus Per Promo Watch</label>
-                  <input type="number" value={settings.taskBonus}
-                    onChange={(e) => setSettings({ ...settings, taskBonus: parseInt(e.target.value) || 11 })}
-                    className="w-full border rounded-lg px-3 py-2" min={0} max={100} />
-                  <p className="text-xs text-gray-400 mt-1">Default: 11 (each promo watch gives +{settings.taskBonus})</p>
+            <div className="space-y-6">
+              {/* Generation Limits */}
+              <div className="bg-white rounded-xl border p-6">
+                <h2 className="font-semibold text-lg text-gray-900 mb-4">Generation Limits</h2>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="text-sm font-medium text-gray-600 block mb-1">Guest Limit</label>
+                    <input type="number" value={settings.guestLimit}
+                      onChange={(e) => setSettings({ ...settings, guestLimit: parseInt(e.target.value) || 2 })}
+                      className="w-full border rounded-lg px-3 py-2" min={0} max={100} />
+                    <p className="text-xs text-gray-400 mt-1">Default: 2</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600 block mb-1">Free Account Limit</label>
+                    <input type="number" value={settings.userLimit}
+                      onChange={(e) => setSettings({ ...settings, userLimit: parseInt(e.target.value) || 4 })}
+                      className="w-full border rounded-lg px-3 py-2" min={0} max={100} />
+                    <p className="text-xs text-gray-400 mt-1">Default: 4</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600 block mb-1">Bonus Per Promo</label>
+                    <input type="number" value={settings.taskBonus}
+                      onChange={(e) => setSettings({ ...settings, taskBonus: parseInt(e.target.value) || 11 })}
+                      className="w-full border rounded-lg px-3 py-2" min={0} max={100} />
+                    <p className="text-xs text-gray-400 mt-1">Default: 11</p>
+                  </div>
                 </div>
               </div>
+
+              {/* Pro Plan Settings */}
+              <div className="bg-white rounded-xl border p-6">
+                <h2 className="font-semibold text-lg text-gray-900 mb-4">Pro Plan</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium text-gray-600 block mb-1">Monthly Price (BDT)</label>
+                    <input type="number" value={settings.proPrice}
+                      onChange={(e) => setSettings({ ...settings, proPrice: parseInt(e.target.value) || 200 })}
+                      className="w-full border rounded-lg px-3 py-2" min={0} />
+                    <p className="text-xs text-gray-400 mt-1">Default: 200</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600 block mb-1">bKash Number</label>
+                    <input type="text" value={settings.bkashNumber}
+                      onChange={(e) => setSettings({ ...settings, bkashNumber: e.target.value })}
+                      className="w-full border rounded-lg px-3 py-2" />
+                    <p className="text-xs text-gray-400 mt-1">Users send money to this number</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Coupon Management */}
+              <div className="bg-white rounded-xl border p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="font-semibold text-lg text-gray-900">Coupons</h2>
+                  <button
+                    onClick={() => setSettings({ ...settings, coupons: [...settings.coupons, { code: "", discount: 50, firstMonthOnly: true, enabled: true }] })}
+                    className="text-sm bg-gray-900 hover:bg-gray-800 text-white px-3 py-1.5 rounded-lg transition"
+                  >
+                    + Add Coupon
+                  </button>
+                </div>
+                {settings.coupons.length === 0 && (
+                  <p className="text-gray-400 text-sm py-4 text-center">No coupons yet. Click + Add Coupon to create one.</p>
+                )}
+                <div className="space-y-3">
+                  {settings.coupons.map((coupon, i) => (
+                    <div key={i} className={`border rounded-lg p-4 ${coupon.enabled ? "border-green-200 bg-green-50/50" : "border-gray-200 bg-gray-50"}`}>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        <div>
+                          <label className="text-[10px] font-medium text-gray-500 uppercase">Code</label>
+                          <input type="text" value={coupon.code}
+                            onChange={(e) => {
+                              const c = [...settings.coupons]; c[i] = { ...c[i], code: e.target.value.toLowerCase() }; setSettings({ ...settings, coupons: c });
+                            }}
+                            placeholder="e.g. new50"
+                            className="w-full border rounded px-2 py-1.5 text-sm font-mono" />
+                        </div>
+                        <div>
+                          <label className="text-[10px] font-medium text-gray-500 uppercase">Discount %</label>
+                          <input type="number" value={coupon.discount}
+                            onChange={(e) => {
+                              const c = [...settings.coupons]; c[i] = { ...c[i], discount: parseInt(e.target.value) || 0 }; setSettings({ ...settings, coupons: c });
+                            }}
+                            className="w-full border rounded px-2 py-1.5 text-sm" min={1} max={100} />
+                        </div>
+                        <div className="flex items-end gap-3">
+                          <label className="flex items-center gap-1.5 text-xs text-gray-600">
+                            <input type="checkbox" checked={coupon.firstMonthOnly}
+                              onChange={(e) => {
+                                const c = [...settings.coupons]; c[i] = { ...c[i], firstMonthOnly: e.target.checked }; setSettings({ ...settings, coupons: c });
+                              }} />
+                            1st month only
+                          </label>
+                        </div>
+                        <div className="flex items-end gap-2">
+                          <label className="flex items-center gap-1.5 text-xs text-gray-600">
+                            <input type="checkbox" checked={coupon.enabled}
+                              onChange={(e) => {
+                                const c = [...settings.coupons]; c[i] = { ...c[i], enabled: e.target.checked }; setSettings({ ...settings, coupons: c });
+                              }} />
+                            Enabled
+                          </label>
+                          <button
+                            onClick={() => { const c = [...settings.coupons]; c.splice(i, 1); setSettings({ ...settings, coupons: c }); }}
+                            className="text-red-400 hover:text-red-600 text-xs ml-auto"
+                          >Delete</button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Save */}
               <div className="flex items-center gap-3">
                 <button onClick={saveSettings}
-                  className="bg-red-500 hover:bg-red-600 text-white font-medium px-6 py-2 rounded-lg transition">
-                  Save Settings
+                  className="bg-red-500 hover:bg-red-600 text-white font-medium px-6 py-2.5 rounded-lg transition">
+                  Save All Settings
                 </button>
                 {settingsSaved && <span className="text-green-600 text-sm font-medium">Saved!</span>}
               </div>
