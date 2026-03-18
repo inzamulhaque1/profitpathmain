@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useSession, signOut } from "next-auth/react";
 import { TOOLS } from "@/lib/constants";
 
@@ -11,6 +11,22 @@ export default function Header() {
   const { data: session, status } = useSession();
 
   const userInitial = session?.user?.name?.charAt(0).toUpperCase() || "U";
+  const [genUsed, setGenUsed] = useState(0);
+  const [genLimit, setGenLimit] = useState(0);
+  const [hasUnlimited, setHasUnlimited] = useState(false);
+
+  useEffect(() => {
+    if (status === "authenticated") {
+      fetch("/api/generation")
+        .then((r) => r.json())
+        .then((d) => {
+          setGenUsed(d.used || 0);
+          setGenLimit(d.limit || 0);
+          setHasUnlimited(d.hasUnlimited || false);
+        })
+        .catch(() => {});
+    }
+  }, [status]);
 
   return (
     <header className="sticky top-0 z-50 bg-white border-b border-gray-200">
@@ -57,7 +73,18 @@ export default function Header() {
           )}
 
           {status === "authenticated" && session?.user && (
-            <div className="relative">
+            <div className="relative flex items-center gap-2">
+              {/* Generation counter */}
+              <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-gray-100 text-xs">
+                <svg className="w-3.5 h-3.5 text-brand-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+                {hasUnlimited ? (
+                  <span className="font-semibold text-green-600">Unlimited</span>
+                ) : (
+                  <span className="font-semibold text-gray-700">{genUsed}<span className="text-gray-400">/{genLimit}</span></span>
+                )}
+              </div>
               <button
                 onClick={() => setUserMenuOpen(!userMenuOpen)}
                 className="w-8 h-8 rounded-full bg-brand-500 text-white text-sm font-bold flex items-center justify-center cursor-pointer hover:bg-brand-600 transition-colors"
@@ -156,6 +183,16 @@ export default function Header() {
                 <div className="px-3 py-2">
                   <p className="text-sm font-medium text-gray-800">{session.user.name}</p>
                   <p className="text-xs text-gray-400">{session.user.email}</p>
+                  <div className="flex items-center gap-1.5 mt-1.5">
+                    <svg className="w-3.5 h-3.5 text-brand-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                    {hasUnlimited ? (
+                      <span className="text-xs font-semibold text-green-600">Unlimited</span>
+                    ) : (
+                      <span className="text-xs font-semibold text-gray-600">{genUsed}/{genLimit} generations</span>
+                    )}
+                  </div>
                 </div>
                 <Link href="/saved" onClick={() => setMobileOpen(false)} className="block px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-lg">
                   Saved Generations
