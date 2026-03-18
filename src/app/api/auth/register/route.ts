@@ -1,9 +1,9 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import dbConnect from "@/lib/mongodb";
 import User from "@/models/User";
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
     const { name, email, password, referralCode } = await request.json();
 
@@ -17,6 +17,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Password must be at least 6 characters" }, { status: 400 });
     }
 
+    // Get registering user's IP
+    const ip =
+      request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+      request.headers.get("x-real-ip") ||
+      "unknown";
+
     await dbConnect();
 
     const existing = await User.findOne({ email: email.toLowerCase().trim() });
@@ -26,12 +32,24 @@ export async function POST(request: Request) {
 
     const hashedPassword = await bcrypt.hash(password, 12);
 
-    // Find referrer before creating user
+    // Process referral — with anti-fraud checks
     let referrerName = "";
+    let validReferral = false;
+
     if (referralCode && typeof referralCode === "string") {
       const referrer = await User.findOne({ referralCode: referralCode.trim() });
       if (referrer) {
-        referrerName = referrer.name;
+        // Anti-fraud: block same IP referrals
+        const sameIP = referrer.lastLoginIP && referrer.lastLoginIP === ip && ip !== "unknown";
+        // Anti-fraud: block disposable email domains
+        const disposableDomains = ["mailinator.com", "tempmail.com", "guerrillamail.com", "throwaway.email", "yopmail.com", "sharklasers.com", "grr.la", "guerrillamailblock.com", "temp-mail.org"];
+        const emailDomain = email.toLowerCase().trim().split("@")[1];
+        const isDisposable = disposableDomains.includes(emailDomain);
+
+        if (!sameIP && !isDisposable) {
+          referrerName = referrer.name;
+          validReferral = true;
+        }
       }
     }
 
@@ -40,10 +58,11 @@ export async function POST(request: Request) {
       email: email.toLowerCase().trim(),
       password: hashedPassword,
       referredBy: referrerName,
+      lastLoginIP: ip,
     });
 
-    // Process referral if code provided
-    if (referralCode && typeof referralCode === "string") {
+    // Grant referrer bonus only if referral is valid
+    if (validReferral && referralCode) {
       const referrer = await User.findOne({ referralCode: referralCode.trim() });
       if (referrer) {
         const unlimitedUntil = new Date();
