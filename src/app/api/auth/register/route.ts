@@ -26,10 +26,20 @@ export async function POST(request: Request) {
 
     const hashedPassword = await bcrypt.hash(password, 12);
 
+    // Find referrer before creating user
+    let referrerName = "";
+    if (referralCode && typeof referralCode === "string") {
+      const referrer = await User.findOne({ referralCode: referralCode.trim() });
+      if (referrer) {
+        referrerName = referrer.name;
+      }
+    }
+
     await User.create({
       name: name.trim(),
       email: email.toLowerCase().trim(),
       password: hashedPassword,
+      referredBy: referrerName,
     });
 
     // Process referral if code provided

@@ -33,6 +33,7 @@ interface UserItem {
   nextPromoIndex: number;
   referralCode: string;
   referralCount: number;
+  referredBy: string;
   unlimitedUntil: string | null;
   lastLoginIP: string;
   createdAt: string;
@@ -294,6 +295,7 @@ export default function AdminPage() {
                       <th className="text-center px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Gen</th>
                       <th className="text-center px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Promos</th>
                       <th className="text-center px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Referrals</th>
+                      <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Referred By</th>
                       <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
                       <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">IP</th>
                       <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Joined</th>
@@ -341,6 +343,13 @@ export default function AdminPage() {
                             )}
                           </td>
                           <td className="px-4 py-3">
+                            {user.referredBy ? (
+                              <span className="text-xs font-medium text-blue-600">{user.referredBy}</span>
+                            ) : (
+                              <span className="text-xs text-gray-300">—</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3">
                             {hasUnlimited ? (
                               <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold bg-green-100 text-green-700">
                                 Unlimited
@@ -361,7 +370,7 @@ export default function AdminPage() {
                       );
                     })}
                     {users.length === 0 && (
-                      <tr><td colSpan={8} className="px-4 py-12 text-center text-gray-400">No users yet</td></tr>
+                      <tr><td colSpan={9} className="px-4 py-12 text-center text-gray-400">No users yet</td></tr>
                     )}
                   </tbody>
                 </table>
