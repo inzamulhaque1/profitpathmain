@@ -32,19 +32,11 @@ def save_state(state):
 
 
 def send_telegram(tweet, idx):
-    encoded_tweet = urllib.parse.quote(tweet)
-    twitter_url = f"https://x.com/intent/post?text={encoded_tweet}"
-
-    message = f"Tweet #{idx + 1} ready!\n\n{tweet}"
+    message = f"Tweet #{idx + 1}\n\n{tweet}\n\n👆 Long press to copy, then open X app and paste."
 
     payload = json.dumps({
         "chat_id": TELEGRAM_CHAT_ID,
         "text": message,
-        "reply_markup": {
-            "inline_keyboard": [[
-                {"text": "Post on Twitter", "url": twitter_url}
-            ]]
-        }
     }).encode("utf-8")
 
     req = urllib.request.Request(
