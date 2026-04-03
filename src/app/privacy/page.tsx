@@ -82,7 +82,12 @@ export default function PrivacyPage() {
         </section>
 
         <section>
-          <h2 className="text-xl font-semibold text-gray-900">10. Contact</h2>
+          <h2 className="text-xl font-semibold text-gray-900">10. Third-Party Applications</h2>
+          <p>This Privacy Policy also applies to additional products and services operated by ProfitPath, including <strong>INZ Gaming</strong> (social media automation for gaming content). These services may collect and process data as described in this policy to provide their functionality, including posting content to social media platforms on behalf of authorized users.</p>
+        </section>
+
+        <section>
+          <h2 className="text-xl font-semibold text-gray-900">11. Contact</h2>
           <p>If you have questions about this Privacy Policy, contact us at <strong>support@profitpath.online</strong>.</p>
         </section>
       </div>

@@ -87,7 +87,12 @@ export default function TermsPage() {
         </section>
 
         <section>
-          <h2 className="text-xl font-semibold text-gray-900">12. Contact</h2>
+          <h2 className="text-xl font-semibold text-gray-900">12. Third-Party Applications</h2>
+          <p>ProfitPath operates and manages additional products and services, including but not limited to <strong>INZ Gaming</strong> (social media automation for gaming content). These products are operated under the same entity and are subject to these Terms of Service. By using any product or service operated by ProfitPath, you agree to these terms.</p>
+        </section>
+
+        <section>
+          <h2 className="text-xl font-semibold text-gray-900">13. Contact</h2>
           <p>For questions about these Terms, contact us at <strong>support@profitpath.online</strong>.</p>
         </section>
       </div>
